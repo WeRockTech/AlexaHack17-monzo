@@ -36,6 +36,18 @@ const handlers = {
         }
       });
     },
+    'GetLastTransactionIntent': function () {
+        this.emit('GetLastTransaction');
+    },
+    'GetLastTransaction': function () {
+      const alexa = this;
+      getLastTransaction(accountId, function (err, transaction) {
+        if (!err) {
+          console.log(`Transaction: ${transaction}`)
+          alexa.emit(':tell', `Your last transaction was for ${formatCurrency(Math.abs(transaction.local_amount))}`);
+        }
+      });
+    },
     'AMAZON.HelpIntent': function () {
         const speechOutput = this.t('HELP_MESSAGE');
         const reprompt = this.t('HELP_MESSAGE');
@@ -56,6 +68,10 @@ const formatCurrency = function (pennies) {
 
   const pounds = Math.floor(pennies / 100);
   const littlePennies = pennies % 100;
+
+  if (littlePennies === 0) {
+    return `${pounds} pounds`;
+  }
 
   return `${pounds} pounds ${littlePennies}`;
 }
@@ -83,6 +99,34 @@ const getBalance = function (accountId, callback) {
     res.on('end', function () {
       const balance = JSON.parse(body).balance;
       callback(null, balance);
+    });
+  });
+};
+
+const getLastTransaction = function (accountId, callback) {
+  console.log('Getting the balance');
+
+  https.get({
+    host: baseUrl,
+    path: `/transactions?account_id=${accountId}`,
+    headers: {
+      'Authorization': accessToken
+    }
+  }, (res) => {
+    if (res.statusCode !== 200) {
+      callback("Something went wrong", null);
+    }
+
+    let body = '';
+
+    res.on('data', function (chunk) {
+      body += chunk;
+    });
+
+    res.on('end', function () {
+      const transactions = JSON.parse(body).transactions;
+      const last = transactions[transactions.length - 1];
+      callback(null, last);
     });
   });
 };
