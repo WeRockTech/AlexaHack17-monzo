@@ -44,7 +44,7 @@ const handlers = {
       getLastTransaction(accountId, function (err, transaction) {
         if (!err) {
           console.log(`Transaction: ${transaction}`)
-          alexa.emit(':tell', `Your last transaction was for ${formatCurrency(Math.abs(transaction.local_amount))}`);
+          alexa.emit(':tell', `Your last transaction was ${formatTransaction(transaction)}`);
         }
       });
     },
@@ -66,8 +66,8 @@ const formatCurrency = function (pennies) {
     return "Nothing";
   }
 
-  const pounds = Math.floor(pennies / 100);
-  const littlePennies = pennies % 100;
+  const pounds = Math.floor(Math.abs(pennies) / 100);
+  const littlePennies = Math.abs(pennies) % 100;
 
   if (littlePennies === 0) {
     return `${pounds} pounds`;
@@ -102,6 +102,11 @@ const getBalance = function (accountId, callback) {
     });
   });
 };
+
+const formatTransaction = function (transaction) {
+  const fromTo = transaction.local_amount < 0 ? 'to' : 'from';
+  return `${formatCurrency(transaction.local_amount)} ${fromTo} ${transaction.description}`
+}
 
 const getLastTransaction = function (accountId, callback) {
   console.log('Getting the balance');
